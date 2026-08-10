@@ -1,0 +1,26 @@
+# Build and executable files
+*.exe
+*.o
+*.obj
+*.out
+
+# Node dependencies
+node_modules/
+dist/
+build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Local databases/data files (optional, we can persist them or exclude them, let's keep them so the project is runnable out of the box, but let's exclude personal log files)
+*.log
