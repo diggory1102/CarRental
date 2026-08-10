@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:18080/api";
+const API_URL = "/api";
 
 export const axiosClient = {
   get: async (url) => {
