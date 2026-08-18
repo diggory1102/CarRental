@@ -2,6 +2,8 @@
 #include <string>
 #include <thread>
 #include <limits>
+#include <cstdlib>
+#include <ctime>
 #include "../include/httplib.h"
 #include "../include/templates/QuanLy.hpp"
 #include "../include/utils/FileManager.h"
