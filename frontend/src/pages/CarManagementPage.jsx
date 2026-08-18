@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, Edit, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Edit, AlertCircle, RefreshCw, Search } from "lucide-react";
 import { carApi } from "../api/carApi";
 
 export default function CarManagementPage() {
@@ -7,6 +7,10 @@ export default function CarManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -83,7 +87,9 @@ export default function CarManagementPage() {
   };
 
   const handleUpdateStatus = async (bienSo, currentStatus) => {
-    const nextStatus = currentStatus === "Sẵn sàng" ? "Bảo trì" : currentStatus === "Bảo trì" ? "Sẵn sàng" : null;
+    // Normalize status strings to strip possible carriage returns \r
+    const statusClean = currentStatus.replace(/[\r\n]/g, "");
+    const nextStatus = statusClean === "Sẵn sàng" ? "Bảo trì" : statusClean === "Bảo trì" ? "Sẵn sàng" : null;
     if (!nextStatus) {
       alert("Không thể đổi trạng thái xe đang thuê theo cách này!");
       return;
@@ -98,6 +104,25 @@ export default function CarManagementPage() {
       setError(err.message);
     }
   };
+
+  // Filter cars list in real time
+  const filteredCars = cars.filter((car) => {
+    const bienSoClean = car.bienSo.toLowerCase();
+    const tenXeClean = car.tenXe.toLowerCase();
+    const loaiXeClean = car.loaiXe.toLowerCase();
+    const queryClean = searchQuery.toLowerCase().trim();
+
+    const matchesSearch = 
+      bienSoClean.includes(queryClean) || 
+      tenXeClean.includes(queryClean) || 
+      loaiXeClean.includes(queryClean);
+
+    // Strip carriage returns from backend values for comparison
+    const carStatusClean = car.trangThai.replace(/[\r\n]/g, "");
+    const matchesStatus = statusFilter === "All" || carStatusClean === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div>
@@ -125,6 +150,45 @@ export default function CarManagementPage() {
         </div>
       )}
 
+      {/* Search and Filter Panel */}
+      <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", marginBottom: "1.5rem", display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div className="form-group" style={{ flex: 2, marginBottom: 0, minWidth: "250px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+            <Search size={14} />
+            <span>Tìm kiếm xe</span>
+          </label>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Nhập biển số, tên xe hoặc phân khúc..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="form-group" style={{ flex: 1, marginBottom: 0, minWidth: "180px" }}>
+          <label>Trạng thái</label>
+          <select
+            className="form-control"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">Tất cả trạng thái</option>
+            <option value="Sẵn sàng">Sẵn sàng (Sẵn sàng)</option>
+            <option value="Đang thuê">Đang thuê (Đang thuê)</option>
+            <option value="Bảo trì">Bảo trì (Bảo trì)</option>
+          </select>
+        </div>
+        {(searchQuery || statusFilter !== "All") && (
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => { setSearchQuery(""); setStatusFilter("All"); }}
+            style={{ height: "38px" }}
+          >
+            Xóa lọc
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <p>Đang tải danh sách xe...</p>
       ) : (
@@ -142,57 +206,62 @@ export default function CarManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {cars.length === 0 ? (
+                {filteredCars.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>Chưa có xe nào trong danh sách.</td>
+                    <td colSpan="6" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                      Không tìm thấy xe nào khớp với điều kiện tìm kiếm.
+                    </td>
                   </tr>
                 ) : (
-                  cars.map((car) => (
-                    <tr key={car.bienSo}>
-                      <td style={{ fontWeight: 600, color: "white" }}>{car.bienSo}</td>
-                      <td>{car.tenXe}</td>
-                      <td>{car.loaiXe}</td>
-                      <td>{car.giaThue.toLocaleString("vi-VN")} VND</td>
-                      <td>
-                        <span className={`badge ${
-                          car.trangThai === "Sẵn sàng" ? "badge-success" : 
-                          car.trangThai === "Đang thuê" ? "badge-secondary" : "badge-warning"
-                        }`}>
-                          {car.trangThai}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "0.5rem" }}>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: "0.4rem 0.6rem" }}
-                            onClick={() => handleUpdateStatus(car.bienSo, car.trangThai)}
-                            disabled={car.trangThai === "Đang thuê"}
-                            title="Chuyển đổi Sẵn sàng / Bảo trì"
-                          >
-                            <RefreshCw size={14} />
-                          </button>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: "0.4rem 0.6rem" }}
-                            onClick={() => handleOpenEditPrice(car)}
-                            title="Sửa giá thuê"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button 
-                            className="btn btn-danger" 
-                            style={{ padding: "0.4rem 0.6rem" }}
-                            onClick={() => handleDeleteCar(car.bienSo)}
-                            disabled={car.trangThai === "Đang thuê"}
-                            title="Xóa xe"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredCars.map((car) => {
+                    const carStatusClean = car.trangThai.replace(/[\r\n]/g, "");
+                    return (
+                      <tr key={car.bienSo}>
+                        <td style={{ fontWeight: 600, color: "white" }}>{car.bienSo}</td>
+                        <td>{car.tenXe}</td>
+                        <td>{car.loaiXe}</td>
+                        <td>{car.giaThue.toLocaleString("vi-VN")} VND</td>
+                        <td>
+                          <span className={`badge ${
+                            carStatusClean === "Sẵn sàng" ? "badge-success" : 
+                            carStatusClean === "Đang thuê" ? "badge-secondary" : "badge-warning"
+                          }`}>
+                            {carStatusClean}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: "0.4rem 0.6rem" }}
+                              onClick={() => handleUpdateStatus(car.bienSo, car.trangThai)}
+                              disabled={carStatusClean === "Đang thuê"}
+                              title="Chuyển đổi Sẵn sàng / Bảo trì"
+                            >
+                              <RefreshCw size={14} />
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: "0.4rem 0.6rem" }}
+                              onClick={() => handleOpenEditPrice(car)}
+                              title="Sửa giá thuê"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button 
+                              className="btn btn-danger" 
+                              style={{ padding: "0.4rem 0.6rem" }}
+                              onClick={() => handleDeleteCar(car.bienSo)}
+                              disabled={carStatusClean === "Đang thuê"}
+                              title="Xóa xe"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

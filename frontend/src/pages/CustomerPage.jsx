@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, Edit, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Edit, AlertCircle, Search } from "lucide-react";
 import { customerApi } from "../api/customerApi";
 
 export default function CustomerPage() {
@@ -7,6 +7,9 @@ export default function CustomerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -68,6 +71,20 @@ export default function CustomerPage() {
     }
   };
 
+  // Filter customers list
+  const filteredCustomers = customers.filter((cust) => {
+    const maKHClean = cust.maKH.toLowerCase();
+    const hoTenClean = cust.hoTen.toLowerCase();
+    const sdtClean = cust.sdt.toLowerCase();
+    const queryClean = searchQuery.toLowerCase().trim();
+
+    return (
+      maKHClean.includes(queryClean) ||
+      hoTenClean.includes(queryClean) ||
+      sdtClean.includes(queryClean)
+    );
+  });
+
   return (
     <div>
       <div className="content-header">
@@ -94,6 +111,32 @@ export default function CustomerPage() {
         </div>
       )}
 
+      {/* Search Panel */}
+      <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", marginBottom: "1.5rem", display: "flex", gap: "1rem", alignItems: "flex-end" }}>
+        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+            <Search size={14} />
+            <span>Tìm kiếm khách hàng</span>
+          </label>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Nhập họ tên, số điện thoại hoặc số CCCD để tìm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        {searchQuery && (
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setSearchQuery("")}
+            style={{ height: "38px" }}
+          >
+            Xóa lọc
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <p>Đang tải danh sách khách hàng...</p>
       ) : (
@@ -110,12 +153,14 @@ export default function CustomerPage() {
                 </tr>
               </thead>
               <tbody>
-                {customers.length === 0 ? (
+                {filteredCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>Chưa có khách hàng nào.</td>
+                    <td colSpan="5" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                      Không tìm thấy khách hàng nào khớp với điều kiện tìm kiếm.
+                    </td>
                   </tr>
                 ) : (
-                  customers.map((cust) => (
+                  filteredCustomers.map((cust) => (
                     <tr key={cust.maKH}>
                       <td style={{ fontWeight: 600, color: "white" }}>{cust.maKH}</td>
                       <td>{cust.hoTen}</td>
