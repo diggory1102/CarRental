@@ -253,9 +253,10 @@ void MenuQuanLyThueTra(
         try {
             if (choice == 1) {
                 std::string maHD, maKH, bienSo, ngayThue, ngayTraDK;
-                std::cout << "Nhap ma hop dong moi: ";
-                std::getline(std::cin >> std::ws, maHD);
-                if (maHD.empty()) throw InvalidIdException("Ma hop dong khong duoc de trong!");
+                do {
+                    maHD = "HD" + std::to_string(std::rand() % 9000 + 1000);
+                } while (qlContracts.TimKiem(maHD) != nullptr);
+                std::cout << "Ma hop dong tu dong phat sinh: " << maHD << std::endl;
 
                 std::cout << "Nhap ma khach hang (CCCD/Passport): ";
                 std::getline(std::cin >> std::ws, maKH);
@@ -411,6 +412,7 @@ void MenuThongKe(QuanLy<Contract>& qlContracts, QuanLy<Customer>& qlCustomers) {
 }
 
 int main() {
+    std::srand(std::time(nullptr));
     // File paths
     const std::string carPath = "backend/data/cars.txt";
     const std::string customerPath = "backend/data/customers.txt";
