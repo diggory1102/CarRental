@@ -447,6 +447,14 @@ void MenuThongKe(QuanLy<Contract>& qlContracts, QuanLy<Customer>& qlCustomers) {
     } while (choice != 0);
 }
 
+
+int getLockDurationSec(int failCount) {
+    if (failCount == 3) return 60;
+    if (failCount == 4) return 180;
+    if (failCount == 5) return 300;
+    return 600;
+}
+
 int main() {
     std::srand(std::time(nullptr));
     // File paths
@@ -529,7 +537,7 @@ int main() {
     std::cout << "      DANG NHAP QUAN LY CHO THUE XE" << std::endl;
     std::cout << "==========================================" << std::endl;
 
-    while (!loggedIn && loginAttempts < 3) {
+    while (!loggedIn) {
         std::cout << "Username: ";
         std::cin >> user;
         std::cout << "Password: ";
@@ -541,13 +549,18 @@ int main() {
             std::cout << "\nDang nhap thanh cong!" << std::endl;
         } else {
             loginAttempts++;
-            std::cout << "Tai khoan hoac mat khau khong dung! Con lai " << (3 - loginAttempts) << " lan thu." << std::endl;
+            if (loginAttempts >= 3) {
+                int sec = getLockDurationSec(loginAttempts);
+                std::cout << "\nTai khoan hoac mat khau khong dung!" << std::endl;
+                for (int i = sec; i > 0; --i) {
+                    std::cout << "\rBan da dang nhap sai " << loginAttempts << " lan! Vui long thu lai sau " << i << "s... " << std::flush;
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
+                std::cout << "\n\nVui long nhap lai thong tin dang nhap:\n" << std::endl;
+            } else {
+                std::cout << "Tai khoan hoac mat khau khong dung! Con lai " << (3 - loginAttempts) << " lan thu." << std::endl;
+            }
         }
-    }
-
-    if (!loggedIn) {
-        std::cout << "Sai mat khau qua 3 lan. Chuong trinh tu ket thuc." << std::endl;
-        return 0;
     }
 
     int mainChoice;
