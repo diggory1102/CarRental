@@ -1,103 +1,50 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Key, Lock, User, AlertCircle } from "lucide-react";
 import { axiosClient } from "../api/axiosClient";
-
-const MAX_ATTEMPTS = 3;
-
-const getLockDuration = (failCount) => {
-  if (failCount === 3) return 60 * 1000;      // 1 minute
-  if (failCount === 4) return 180 * 1000;     // 3 minutes
-  if (failCount === 5) return 300 * 1000;     // 5 minutes
-  return 600 * 1000;                          // 10 minutes
-};
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // Persistent state for login attempts and countdown
-  const [attempts, setAttempts] = useState(() => {
-    return parseInt(localStorage.getItem("loginAttempts") || "0", 10);
-  });
-  const [countdown, setCountdown] = useState(0);
-
+  const [attempts, setAttempts] = useState(0); // Limits to 3 times
   const navigate = useNavigate();
-
-  // Handle countdown timer & lock status on load or countdown change
-  useEffect(() => {
-    const lockUntil = localStorage.getItem("lockUntil");
-    if (!lockUntil) return;
-
-    const remainingTime = Math.ceil((parseInt(lockUntil, 10) - Date.now()) / 1000);
-
-    if (remainingTime > 0) {
-      setCountdown(remainingTime);
-      setError(`Bạn đã thử sai quá số lần. Vui lòng thử lại sau ${remainingTime}s.`);
-
-      const timer = setInterval(() => {
-        const left = Math.ceil((parseInt(lockUntil, 10) - Date.now()) / 1000);
-        if (left <= 0) {
-          clearInterval(timer);
-          localStorage.removeItem("lockUntil");
-          setCountdown(0);
-          setError("");
-        } else {
-          setCountdown(left);
-          setError(`Bạn đã thử sai quá số lần. Vui lòng thử lại sau ${left}s.`);
-        }
-      }, 1000);
-
-      return () => clearInterval(timer);
-    } else {
-      localStorage.removeItem("lockUntil");
-      setCountdown(0);
-    }
-  }, [countdown]);
-
-  const handleFailAttempt = () => {
-    const nextAttempts = attempts + 1;
-    setAttempts(nextAttempts);
-    localStorage.setItem("loginAttempts", nextAttempts.toString());
-
-    if (nextAttempts >= MAX_ATTEMPTS) {
-      const duration = getLockDuration(nextAttempts);
-      const lockUntil = Date.now() + duration;
-      localStorage.setItem("lockUntil", lockUntil.toString());
-      setCountdown(Math.ceil(duration / 1000));
-      setError(`Bạn đã đăng nhập sai ${nextAttempts} lần! Chức năng bị khóa ${duration / 1000}s.`);
-    } else {
-      setError(`Tài khoản hoặc mật khẩu không chính xác (Sai ${nextAttempts}/${MAX_ATTEMPTS} lần)`);
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (countdown > 0) {
-      setError(`Vui lòng chờ ${countdown}s để thử lại.`);
+    if (attempts >= 3) {
+      setError("Bạn đã đăng nhập sai quá 3 lần! Chức năng đăng nhập đã bị khóa.");
       return;
     }
 
-    setError("");
     setLoading(true);
 
     try {
       const res = await axiosClient.post("/login", { username, password });
       if (res.success) {
         localStorage.setItem("username", username);
-        localStorage.removeItem("loginAttempts");
-        localStorage.removeItem("lockUntil");
-        setAttempts(0);
+        setAttempts(0); // Reset attempts on success
         navigate("/");
       } else {
-        handleFailAttempt();
+        const nextAttempts = attempts + 1;
+        setAttempts(nextAttempts);
+        if (nextAttempts >= 3) {
+          setError("Bạn đã đăng nhập sai quá 3 lần! Chức năng đăng nhập đã bị khóa.");
+        } else {
+          setError(`Tài khoản hoặc mật khẩu không chính xác (${nextAttempts}/3 lần)`);
+        }
       }
     } catch (err) {
-      // In case network fails or user details are wrong
-      handleFailAttempt();
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
+      if (nextAttempts >= 3) {
+        setError("Bạn đã đăng nhập sai quá 3 lần! Chức năng đăng nhập đã bị khóa.");
+      } else {
+        setError(`Tài khoản hoặc mật khẩu không chính xác (${nextAttempts}/3 lần)`);
+      }
     } finally {
       setLoading(false);
     }
@@ -164,7 +111,6 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 style={{ paddingLeft: "2.5rem", width: "100%" }}
                 required
-                disabled={countdown > 0}
               />
             </div>
           </div>
@@ -182,7 +128,6 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 style={{ paddingLeft: "2.5rem", width: "100%" }}
                 required
-                disabled={countdown > 0}
               />
             </div>
           </div>
@@ -191,9 +136,9 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary"
             style={{ width: "100%", justifyContent: "center", padding: "0.8rem", fontSize: "1rem" }}
-            disabled={loading || countdown > 0}
+            disabled={loading || attempts >= 3}
           >
-            {countdown > 0 ? `Thử lại sau (${countdown}s)` : loading ? "Đang xác thực..." : "Đăng nhập"}
+            {loading ? "Đang kết nối..." : attempts >= 3 ? "Đã bị khóa đăng nhập" : "Đăng nhập"}
           </button>
         </form>
 
