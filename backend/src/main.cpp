@@ -59,9 +59,16 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
                     clearInputBuffer();
                     throw std::invalid_argument("Gia thue phai la mot so!");
                 }
-                std::cout << "Nhap trang thai (San sang/Dang thue/Bao tri): ";
-                std::getline(std::cin >> std::ws, trangThai);
-
+                int ttChoice = 1;
+                std::cout << "Chon trang thai xe (1: San sang, 2: Bao tri): ";
+                if (!(std::cin >> ttChoice)) {
+                    clearInputBuffer();
+                    ttChoice = 1;
+                }
+                trangThai = "S\u1eb5n s\u00e0ng";
+                if (ttChoice == 2) {
+                    trangThai = "B\u1ea3o tr\u00ec";
+                }
                 Car newCar(bienSo, tenXe, loaiXe, giaThue, trangThai);
                 qlCars.Them(newCar);
                 FileManager::Save(carPath, qlCars);
@@ -137,12 +144,17 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
                 if (!car) {
                     std::cout << "Khong tim thay xe co bien so nay!" << std::endl;
                 } else {
-                    std::cout << "Nhap trang thai moi (San sang / Bao tri): ";
-                    std::getline(std::cin >> std::ws, trangThaiMoi);
-                    if (trangThaiMoi != "San sang" && trangThaiMoi != "Sẵn sàng" && trangThaiMoi != "Bao tri" && trangThaiMoi != "Bảo trì") {
-                        throw std::invalid_argument("Trang thai khong hop le! (Chi cho phep 'San sang' hoac 'Bao tri')");
+                    int ttChoice = 1;
+                    std::cout << "Chon trang thai moi (1: San sang, 2: Bao tri): ";
+                    if (!(std::cin >> ttChoice)) {
+                        clearInputBuffer();
+                        ttChoice = 1;
                     }
-                    if (car->getTrangThai() == "Dang thue" || car->getTrangThai() == "Đang thuê") {
+                    trangThaiMoi = "S\u1eb5n s\u00e0ng";
+                    if (ttChoice == 2) {
+                        trangThaiMoi = "B\u1ea3o tr\u00ec";
+                    }
+                    if (car->getTrangThai() == "Dang thue" || car->getTrangThai() == "\u0110ang thu\u00ea") {
                         throw std::runtime_error("Khong the cap nhat trang thai xe dang trong hop dong thue!");
                     }
                     car->setTrangThai(trangThaiMoi);
