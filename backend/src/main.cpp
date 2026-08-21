@@ -65,9 +65,9 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
                     clearInputBuffer();
                     ttChoice = 1;
                 }
-                trangThai = "S\u1eb5n s\u00e0ng";
+                trangThai = u8"Sẵn sàng";
                 if (ttChoice == 2) {
-                    trangThai = "B\u1ea3o tr\u00ec";
+                    trangThai = u8"Bảo trì";
                 }
                 Car newCar(bienSo, tenXe, loaiXe, giaThue, trangThai);
                 qlCars.Them(newCar);
@@ -150,11 +150,11 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
                         clearInputBuffer();
                         ttChoice = 1;
                     }
-                    trangThaiMoi = "S\u1eb5n s\u00e0ng";
+                    trangThaiMoi = u8"Sẵn sàng";
                     if (ttChoice == 2) {
-                        trangThaiMoi = "B\u1ea3o tr\u00ec";
+                        trangThaiMoi = u8"Bảo trì";
                     }
-                    if (car->getTrangThai() == "Dang thue" || car->getTrangThai() == "\u0110ang thu\u00ea") {
+                    if (car->getTrangThai() == "Dang thue" || car->getTrangThai() == u8"Đang thuê") {
                         throw std::runtime_error("Khong the cap nhat trang thai xe dang trong hop dong thue!");
                     }
                     car->setTrangThai(trangThaiMoi);
