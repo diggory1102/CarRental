@@ -8,23 +8,43 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0); // Limits to 3 times
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (attempts >= 3) {
+      setError("Bạn đã đăng nhập sai quá 3 lần! Chức năng đăng nhập đã bị khóa.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await axiosClient.post("/login", { username, password });
       if (res.success) {
         localStorage.setItem("username", username);
+        setAttempts(0); // Reset attempts on success
         navigate("/");
       } else {
-        setError(res.message || "Tài khoản hoặc mật khẩu không chính xác");
+        const nextAttempts = attempts + 1;
+        setAttempts(nextAttempts);
+        if (nextAttempts >= 3) {
+          setError("Bạn đã đăng nhập sai quá 3 lần! Chức năng đăng nhập đã bị khóa.");
+        } else {
+          setError(`Tài khoản hoặc mật khẩu không chính xác (Sai ${nextAttempts}/3 lần)`);
+        }
       }
     } catch (err) {
-      setError(err.message || "Không thể kết nối đến máy chủ C++");
+      const nextAttempts = attempts + 1;
+      setAttempts(nextAttempts);
+      if (nextAttempts >= 3) {
+        setError("Bạn đã đăng nhập sai quá 3 lần! Chức năng đăng nhập đã bị khóa.");
+      } else {
+        setError(`Không thể kết nối đến máy chủ C++ (Sai ${nextAttempts}/3 lần)`);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,9 +136,9 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary"
             style={{ width: "100%", justifyContent: "center", padding: "0.8rem", fontSize: "1rem" }}
-            disabled={loading}
+            disabled={loading || attempts >= 3}
           >
-            {loading ? "Đang kết nối..." : "Đăng nhập"}
+            {loading ? "Đang kết nối..." : attempts >= 3 ? "Đã bị khóa đăng nhập" : "Đăng nhập"}
           </button>
         </form>
 
