@@ -57,14 +57,14 @@ export default function CustomerPage() {
     // Validate CCCD (Mã KH)
     const cccdRegex = /^[0-9]{12}$/;
     if (!cccdRegex.test(form.maKH)) {
-      setModalError("Số CCCD phải có đúng 12 chữ số và không chứa ký tự đặc biệt!");
+      setModalError("Số CCCD không hợp lệ!");
       return;
     }
 
     // Validate Phone (Số điện thoại)
     const phoneRegex = /^0[0-9]{9}$/;
     if (!phoneRegex.test(form.sdt)) {
-      setModalError("Số điện thoại phải có đúng 10 chữ số và bắt đầu bằng số 0!");
+      setModalError("Số điện thoại không hợp lệ");
       return;
     }
 
@@ -72,7 +72,7 @@ export default function CustomerPage() {
     const currentYear = new Date().getFullYear();
     const birthYear = parseInt(form.namSinh);
     if (isNaN(birthYear) || birthYear < 1900 || birthYear > currentYear) {
-      setModalError(`Năm sinh không hợp lệ (1900 - ${currentYear})!`);
+      setModalError(`Năm sinh không hợp lệ!`);
       return;
     }
 
@@ -154,8 +154,8 @@ export default function CustomerPage() {
           />
         </div>
         {searchQuery && (
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             onClick={() => setSearchQuery("")}
             style={{ height: "38px" }}
           >
@@ -195,16 +195,16 @@ export default function CustomerPage() {
                       <td>{cust.namSinh}</td>
                       <td style={{ textAlign: "right" }}>
                         <div style={{ display: "inline-flex", gap: "0.5rem" }}>
-                          <button 
-                            className="btn btn-secondary" 
+                          <button
+                            className="btn btn-secondary"
                             style={{ padding: "0.4rem 0.6rem" }}
                             onClick={() => handleOpenEdit(cust)}
                             title="Sửa thông tin"
                           >
                             <Edit size={14} />
                           </button>
-                          <button 
-                            className="btn btn-danger" 
+                          <button
+                            className="btn btn-danger"
                             style={{ padding: "0.4rem 0.6rem" }}
                             onClick={() => handleDelete(cust.maKH)}
                             title="Xóa khách hàng"
