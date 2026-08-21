@@ -15,6 +15,9 @@ export default function CustomerPage() {
   const [isEdit, setIsEdit] = useState(false);
   const [form, setForm] = useState({ maKH: "", hoTen: "", sdt: "", namSinh: "" });
 
+  // Modal level error
+  const [modalError, setModalError] = useState("");
+
   const fetchCustomers = async () => {
     setLoading(true);
     setError("");
@@ -34,27 +37,52 @@ export default function CustomerPage() {
 
   const handleOpenAdd = () => {
     setIsEdit(false);
+    setModalError("");
     setForm({ maKH: "", hoTen: "", sdt: "", namSinh: "" });
     setShowModal(true);
   };
 
   const handleOpenEdit = (cust) => {
     setIsEdit(true);
+    setModalError("");
     setForm(cust);
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setModalError("");
     setSuccessMsg("");
+
+    // Validate CCCD (Mã KH)
+    const cccdRegex = /^[0-9]{12}$/;
+    if (!cccdRegex.test(form.maKH)) {
+      setModalError("Số CCCD phải có đúng 12 chữ số và không chứa ký tự đặc biệt!");
+      return;
+    }
+
+    // Validate Phone (Số điện thoại)
+    const phoneRegex = /^0[0-9]{9}$/;
+    if (!phoneRegex.test(form.sdt)) {
+      setModalError("Số điện thoại phải có đúng 10 chữ số và bắt đầu bằng số 0!");
+      return;
+    }
+
+    // Validate Year of birth
+    const currentYear = new Date().getFullYear();
+    const birthYear = parseInt(form.namSinh);
+    if (isNaN(birthYear) || birthYear < 1900 || birthYear > currentYear) {
+      setModalError(`Năm sinh không hợp lệ (1900 - ${currentYear})!`);
+      return;
+    }
+
     try {
       await customerApi.createOrUpdate(form);
       setSuccessMsg(isEdit ? "Cập nhật khách hàng thành công!" : "Thêm khách hàng thành công!");
       setShowModal(false);
       fetchCustomers();
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     }
   };
 
@@ -71,7 +99,6 @@ export default function CustomerPage() {
     }
   };
 
-  // Filter customers list
   const filteredCustomers = customers.filter((cust) => {
     const maKHClean = cust.maKH.toLowerCase();
     const hoTenClean = cust.hoTen.toLowerCase();
@@ -203,6 +230,14 @@ export default function CustomerPage() {
               <h2>{isEdit ? "Cập nhật Khách Hàng" : "Thêm Khách Hàng Mới"}</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
             </div>
+
+            {modalError && (
+              <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+                <AlertCircle size={18} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Mã Khách hàng (CCCD)</label>

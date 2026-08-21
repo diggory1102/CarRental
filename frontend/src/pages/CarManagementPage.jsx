@@ -16,6 +16,9 @@ export default function CarManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditPriceModal, setShowEditPriceModal] = useState(false);
 
+  // Modal level error
+  const [modalError, setModalError] = useState("");
+
   // Form states
   const [newCar, setNewCar] = useState({ bienSo: "", tenXe: "", loaiXe: "", giaThue: "", trangThai: "Sẵn sàng" });
   const [selectedCar, setSelectedCar] = useState(null);
@@ -38,18 +41,36 @@ export default function CarManagementPage() {
     fetchCars();
   }, []);
 
+  const handleOpenAddModal = () => {
+    setModalError("");
+    setNewCar({ bienSo: "", tenXe: "", loaiXe: "", giaThue: "", trangThai: "Sẵn sàng" });
+    setShowAddModal(true);
+  };
+
   const handleAddCar = async (e) => {
     e.preventDefault();
-    setError("");
+    setModalError("");
     setSuccessMsg("");
+
+    // Validate price
+    const price = parseFloat(newCar.giaThue);
+    if (isNaN(price) || price < 0) {
+      setModalError("Giá thuê phải là một số lớn hơn hoặc bằng 0!");
+      return;
+    }
+
+    if (!newCar.bienSo.trim()) {
+      setModalError("Biển số xe không được để trống!");
+      return;
+    }
+
     try {
       await carApi.create(newCar);
       setSuccessMsg("Thêm xe thành công!");
-      setNewCar({ bienSo: "", tenXe: "", loaiXe: "", giaThue: "", trangThai: "Sẵn sàng" });
       setShowAddModal(false);
       fetchCars();
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     }
   };
 
@@ -69,25 +90,32 @@ export default function CarManagementPage() {
   const handleOpenEditPrice = (car) => {
     setSelectedCar(car);
     setNewPrice(car.giaThue);
+    setModalError("");
     setShowEditPriceModal(true);
   };
 
   const handleUpdatePrice = async (e) => {
     e.preventDefault();
-    setError("");
+    setModalError("");
     setSuccessMsg("");
+
+    const price = parseFloat(newPrice);
+    if (isNaN(price) || price < 0) {
+      setModalError("Giá thuê mới phải là một số lớn hơn hoặc bằng 0!");
+      return;
+    }
+
     try {
       await carApi.updatePrice(selectedCar.bienSo, newPrice);
       setSuccessMsg("Cập nhật giá thuê thành công!");
       setShowEditPriceModal(false);
       fetchCars();
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     }
   };
 
   const handleUpdateStatus = async (bienSo, currentStatus) => {
-    // Normalize status strings to strip possible carriage returns \r
     const statusClean = currentStatus.replace(/[\r\n]/g, "");
     const nextStatus = statusClean === "Sẵn sàng" ? "Bảo trì" : statusClean === "Bảo trì" ? "Sẵn sàng" : null;
     if (!nextStatus) {
@@ -105,7 +133,6 @@ export default function CarManagementPage() {
     }
   };
 
-  // Filter cars list in real time
   const filteredCars = cars.filter((car) => {
     const bienSoClean = car.bienSo.toLowerCase();
     const tenXeClean = car.tenXe.toLowerCase();
@@ -117,7 +144,6 @@ export default function CarManagementPage() {
       tenXeClean.includes(queryClean) || 
       loaiXeClean.includes(queryClean);
 
-    // Strip carriage returns from backend values for comparison
     const carStatusClean = car.trangThai.replace(/[\r\n]/g, "");
     const matchesStatus = statusFilter === "All" || carStatusClean === statusFilter;
 
@@ -131,7 +157,7 @@ export default function CarManagementPage() {
           <h1>Quản lý Ô tô</h1>
           <p style={{ color: "#94a3b8", marginTop: "0.25rem" }}>Danh sách các xe ô tô tự lái trong hệ thống.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+        <button className="btn btn-primary" onClick={handleOpenAddModal}>
           <Plus size={18} />
           <span>Thêm Xe Mới</span>
         </button>
@@ -173,9 +199,9 @@ export default function CarManagementPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="All">Tất cả trạng thái</option>
-            <option value="Sẵn sàng">Sẵn sàng (Sẵn sàng)</option>
-            <option value="Đang thuê">Đang thuê (Đang thuê)</option>
-            <option value="Bảo trì">Bảo trì (Bảo trì)</option>
+            <option value="Sẵn sàng">Sẵn sàng</option>
+            <option value="Đang thuê">Đang thuê</option>
+            <option value="Bảo trì">Bảo trì</option>
           </select>
         </div>
         {(searchQuery || statusFilter !== "All") && (
@@ -277,6 +303,14 @@ export default function CarManagementPage() {
               <h2>Thêm Xe Ô Tô Mới</h2>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>×</button>
             </div>
+
+            {modalError && (
+              <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+                <AlertCircle size={18} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleAddCar}>
               <div className="form-group">
                 <label>Biển số xe</label>
@@ -350,6 +384,14 @@ export default function CarManagementPage() {
               <h2>Cập nhật Giá Thuê</h2>
               <button className="modal-close" onClick={() => setShowEditPriceModal(false)}>×</button>
             </div>
+
+            {modalError && (
+              <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+                <AlertCircle size={18} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleUpdatePrice}>
               <div style={{ marginBottom: "1rem" }}>
                 <p>Xe: <strong>{selectedCar?.tenXe}</strong> ({selectedCar?.bienSo})</p>

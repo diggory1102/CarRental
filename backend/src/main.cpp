@@ -33,6 +33,7 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
         std::cout << "4. Tim kiem xe theo Bien so" << std::endl;
         std::cout << "5. Tim cac xe dang 'San sang'" << std::endl;
         std::cout << "6. Hien thi danh sach xe" << std::endl;
+        std::cout << "7. Cap nhat trang thai xe" << std::endl;
         std::cout << "0. Quay lai menu chinh" << std::endl;
         std::cout << "Lua chon cua ban: ";
         if (!(std::cin >> choice)) {
@@ -128,6 +129,26 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
             } else if (choice == 6) {
                 std::cout << "\n--- Danh sach tat ca xe ---" << std::endl;
                 qlCars.HienThiDanhSach();
+            } else if (choice == 7) {
+                std::string bienSo, trangThaiMoi;
+                std::cout << "Nhap bien so xe can cap nhat trang thai: ";
+                std::getline(std::cin >> std::ws, bienSo);
+                Car* car = qlCars.TimKiem(bienSo);
+                if (!car) {
+                    std::cout << "Khong tim thay xe co bien so nay!" << std::endl;
+                } else {
+                    std::cout << "Nhap trang thai moi (San sang / Bao tri): ";
+                    std::getline(std::cin >> std::ws, trangThaiMoi);
+                    if (trangThaiMoi != "San sang" && trangThaiMoi != "Sẵn sàng" && trangThaiMoi != "Bao tri" && trangThaiMoi != "Bảo trì") {
+                        throw std::invalid_argument("Trang thai khong hop le! (Chi cho phep 'San sang' hoac 'Bao tri')");
+                    }
+                    if (car->getTrangThai() == "Dang thue" || car->getTrangThai() == "Đang thuê") {
+                        throw std::runtime_error("Khong the cap nhat trang thai xe dang trong hop dong thue!");
+                    }
+                    car->setTrangThai(trangThaiMoi);
+                    FileManager::Save(carPath, qlCars);
+                    std::cout << "Cap nhat trang thai xe thanh cong!" << std::endl;
+                }
             }
         } catch (const InvalidIdException& e) {
             std::cout << "LOI QUY PHAM: " << e.what() << std::endl;
@@ -175,6 +196,11 @@ void MenuQuanLyKhachHang(QuanLy<Customer>& qlCustomers, const std::string& custo
                     throw std::invalid_argument("Nam sinh phai la mot so!");
                 }
 
+                for (const auto& cust : qlCustomers.getDanhSach()) {
+                    if (cust.getSdt() == sdt) {
+                        throw std::invalid_argument("So dien thoai nay da duoc dang ky boi khach hang khac!");
+                    }
+                }
                 Customer newCust(maKH, hoTen, sdt, namSinh);
                 qlCustomers.Them(newCust);
                 FileManager::Save(customerPath, qlCustomers);
@@ -198,6 +224,11 @@ void MenuQuanLyKhachHang(QuanLy<Customer>& qlCustomers, const std::string& custo
                     if (!(std::cin >> namSinh)) {
                         clearInputBuffer();
                         throw std::invalid_argument("Nam sinh phai la mot so!");
+                    }
+                    for (const auto& other : qlCustomers.getDanhSach()) {
+                        if (other.getSdt() == sdt && other.getMaKH() != maKH) {
+                            throw std::invalid_argument("So dien thoai nay da duoc dang ky boi khach hang khac!");
+                        }
                     }
                     cust->CapNhatThongTin(hoTen, sdt, namSinh);
                     FileManager::Save(customerPath, qlCustomers);
@@ -281,6 +312,9 @@ void MenuQuanLyThueTra(
                     throw CarNotAvailableException("Xe bien so " + bienSo + " hien dang ban hoac bao tri!");
                 }
 
+                if (ngayTraDK < ngayThue) {
+                    throw std::invalid_argument("Ngay tra du kien khong the truoc ngay thue!");
+                }
                 std::cout << "Nhap ngay thue (yyyy-mm-dd): ";
                 std::getline(std::cin >> std::ws, ngayThue);
                 std::cout << "Nhap ngay tra du kien (yyyy-mm-dd): ";

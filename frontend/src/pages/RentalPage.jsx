@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Check, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Check, AlertCircle, Search } from "lucide-react";
 import { carApi } from "../api/carApi";
 import { customerApi } from "../api/customerApi";
 import { contractApi } from "../api/contractApi";
@@ -12,9 +12,15 @@ export default function RentalPage() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Search state for contracts
+  const [contractSearchQuery, setContractSearchQuery] = useState("");
+
   // Modals
   const [showRentModal, setShowRentModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
+
+  // Modal level error
+  const [modalError, setModalError] = useState("");
 
   // Form states
   const [selectedCar, setSelectedCar] = useState(null);
@@ -57,23 +63,27 @@ export default function RentalPage() {
 
   const handleOpenRent = (car) => {
     setSelectedCar(car);
+    setModalError("");
     setRentForm({
       maHD: "HD" + Math.floor(1000 + Math.random() * 9000),
-      maKH: custDataDropdownValue(),
+      maKH: customers.length > 0 ? customers[0].maKH : "",
       ngayThue: new Date().toISOString().split("T")[0],
       ngayTraDuKien: new Date(Date.now() + 86400000).toISOString().split("T")[0],
     });
     setShowRentModal(true);
   };
 
-  const custDataDropdownValue = () => {
-    return customers.length > 0 ? customers[0].maKH : "";
-  };
-
   const handleRentSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setModalError("");
     setSuccessMsg("");
+
+    // Date validation
+    if (rentForm.ngayTraDuKien < rentForm.ngayThue) {
+      setModalError("Ngày trả dự kiến không thể trước ngày thuê!");
+      return;
+    }
+
     try {
       const payload = {
         ...rentForm,
@@ -84,23 +94,52 @@ export default function RentalPage() {
       setShowRentModal(false);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     }
   };
 
   const handleOpenReturn = (contract) => {
     setSelectedContract(contract);
+    setModalError("");
+    const today = new Date().toISOString().split("T")[0];
+    
+    // Auto-calculate initial days
+    const start = new Date(contract.ngayThue);
+    const end = new Date(today);
+    const diffTime = end - start;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
     setReturnForm({
-      ngayTraThucTe: new Date().toISOString().split("T")[0],
-      soNgayThucTe: "1",
+      ngayTraThucTe: today,
+      soNgayThucTe: diffDays >= 0 ? diffDays.toString() : "0",
     });
     setShowReturnModal(true);
   };
 
+  // Watch for return date change to auto-calculate days
+  useEffect(() => {
+    if (selectedContract && returnForm.ngayTraThucTe) {
+      const start = new Date(selectedContract.ngayThue);
+      const end = new Date(returnForm.ngayTraThucTe);
+      const diffTime = end - start;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setReturnForm(prev => ({
+        ...prev,
+        soNgayThucTe: diffDays >= 0 ? diffDays.toString() : "0"
+      }));
+    }
+  }, [returnForm.ngayTraThucTe, selectedContract]);
+
   const handleReturnSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setModalError("");
     setSuccessMsg("");
+
+    if (returnForm.ngayTraThucTe < selectedContract.ngayThue) {
+      setModalError("Ngày trả thực tế không thể trước ngày thuê!");
+      return;
+    }
+
     try {
       const payload = {
         maHD: selectedContract.maHD,
@@ -112,7 +151,7 @@ export default function RentalPage() {
       setShowReturnModal(false);
       fetchData();
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     }
   };
 
@@ -126,7 +165,22 @@ export default function RentalPage() {
     return cust ? cust.hoTen : maKH;
   };
 
-  const availableCars = cars.filter(c => c.trangThai === "Sẵn sàng");
+  const availableCars = cars.filter(c => c.trangThai === "Sẵn sàng" || c.trangThai === "San sang");
+
+  // Filter active contracts based on search query
+  const filteredContracts = contracts.filter((c) => {
+    const q = contractSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    
+    const maHDMatch = c.maHD.toLowerCase().includes(q);
+    const maKHMatch = c.maKH.toLowerCase().includes(q);
+    const bienSoMatch = c.bienSo.toLowerCase().includes(q);
+    
+    const customer = customers.find(cust => cust.maKH === c.maKH);
+    const custNameMatch = customer ? customer.hoTen.toLowerCase().includes(q) : false;
+
+    return maHDMatch || maKHMatch || bienSoMatch || custNameMatch;
+  });
 
   return (
     <div>
@@ -190,8 +244,31 @@ export default function RentalPage() {
 
           {/* Section 2: Active Contracts */}
           <div className="glass-panel" style={{ padding: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem", color: "white" }}>2. Hợp đồng đang thuê (Chờ trả xe)</h2>
-            <div className="table-container" style={{ marginTop: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "white", margin: 0 }}>2. Hợp đồng đang thuê (Chờ trả xe)</h2>
+              
+              {/* Contract Search bar */}
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", width: "100%", maxWidth: "350px" }}>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Tìm hợp đồng, CCCD, biển số..."
+                      value={contractSearchQuery}
+                      onChange={(e) => setContractSearchQuery(e.target.value)}
+                      style={{ paddingLeft: "2.5rem" }}
+                    />
+                    <Search size={16} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+                  </div>
+                </div>
+                {contractSearchQuery && (
+                  <button className="btn btn-secondary" onClick={() => setContractSearchQuery("")} style={{ padding: "0.5rem 0.75rem" }}>Xóa</button>
+                )}
+              </div>
+            </div>
+
+            <div className="table-container">
               <table className="custom-table">
                 <thead>
                   <tr>
@@ -204,12 +281,14 @@ export default function RentalPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {contracts.length === 0 ? (
+                  {filteredContracts.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>Không có hợp đồng thuê xe nào đang hoạt động.</td>
+                      <td colSpan="6" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        Không có hợp đồng nào khớp với tìm kiếm hoặc đang hoạt động.
+                      </td>
                     </tr>
                   ) : (
-                    contracts.map((contract) => (
+                    filteredContracts.map((contract) => (
                       <tr key={contract.maHD}>
                         <td style={{ fontWeight: 600, color: "white" }}>{contract.maHD}</td>
                         <td>{getCustomerName(contract.maKH)} <span style={{ fontSize: "0.8rem", color: "#94a3b8" }}>(CCCD: {contract.maKH})</span></td>
@@ -245,6 +324,14 @@ export default function RentalPage() {
               <h2>Lập Hợp Đồng Thuê Xe</h2>
               <button className="modal-close" onClick={() => setShowRentModal(false)}>×</button>
             </div>
+            
+            {modalError && (
+              <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+                <AlertCircle size={18} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleRentSubmit}>
               <div style={{ marginBottom: "1rem" }}>
                 <p>Xe đã chọn: <strong>{selectedCar?.tenXe}</strong> ({selectedCar?.bienSo})</p>
@@ -252,7 +339,7 @@ export default function RentalPage() {
               </div>
 
               <div className="form-group">
-                <label>Mã Hợp đồng</label>
+                <label>Mã Hợp đồng (Tự động phát sinh)</label>
                 <input
                   type="text"
                   className="form-control"
@@ -320,11 +407,20 @@ export default function RentalPage() {
               <h2>Xử Lý Trả Xe & Tính Tiền</h2>
               <button className="modal-close" onClick={() => setShowReturnModal(false)}>×</button>
             </div>
+
+            {modalError && (
+              <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.75rem 1rem", borderRadius: "8px", marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+                <AlertCircle size={18} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleReturnSubmit}>
               <div style={{ marginBottom: "1rem" }}>
                 <p>Hợp đồng: <strong>{selectedContract?.maHD}</strong></p>
                 <p>Khách hàng: <strong>{getCustomerName(selectedContract?.maKH)}</strong></p>
                 <p>Xe: <strong>{getCarName(selectedContract?.bienSo)}</strong></p>
+                <p>Ngày thuê: <strong>{selectedContract?.ngayThue}</strong></p>
               </div>
 
               <div className="form-group">
@@ -339,7 +435,7 @@ export default function RentalPage() {
               </div>
 
               <div className="form-group">
-                <label>Số ngày thuê thực tế</label>
+                <label>Số ngày thuê thực tế (Tự động tính)</label>
                 <input
                   type="number"
                   className="form-control"

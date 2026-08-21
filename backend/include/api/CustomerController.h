@@ -26,6 +26,15 @@ inline void RegisterCustomerRoutes(httplib::Server& svr, QuanLy<Customer>& qlCus
 
             int namSinh = std::stoi(namSinhStr);
 
+            // Kiểm tra trùng Số điện thoại
+            for (const auto& cust : qlCustomers.getDanhSach()) {
+                if (cust.getSdt() == sdt && cust.getMaKH() != maKH) {
+                    res.status = 400;
+                    res.set_content("{\"success\":false, \"message\":\"Số điện thoại này đã được đăng ký bởi khách hàng khác!\"}", "application/json");
+                    return;
+                }
+            }
+
             Customer* existing = qlCustomers.TimKiem(maKH);
             if (existing) {
                 // Update

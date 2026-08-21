@@ -29,6 +29,10 @@ inline void RegisterContractRoutes(
             std::string ngayThue = JsonSerializer::GetJsonValue(req.body, "ngayThue");
             std::string ngayTraDuKien = JsonSerializer::GetJsonValue(req.body, "ngayTraDuKien");
 
+            if (ngayTraDuKien < ngayThue) {
+                throw std::invalid_argument("Ngày trả dự kiến không thể trước ngày thuê!");
+            }
+
             if (maHD.empty() || maKH.empty() || bienSo.empty() || ngayThue.empty() || ngayTraDuKien.empty()) {
                 throw InvalidIdException("Mọi trường thông tin hợp đồng không được để trống");
             }

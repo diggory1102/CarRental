@@ -64,6 +64,7 @@ public:
     friend std::istream& operator>>(std::istream& in, Contract& contract) {
         std::string line;
         if (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
             if (line.empty()) return in;
             std::stringstream ss(line);
             std::string mhd, mkh, bs, nt, ntdk, nttt, st_str;

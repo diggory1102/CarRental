@@ -42,6 +42,10 @@ inline void RegisterCarRoutes(httplib::Server& svr, QuanLy<Car>& qlCars, const s
     svr.Post("/api/cars/delete", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             std::string bienSo = JsonSerializer::GetJsonValue(req.body, "bienSo");
+            Car* car = qlCars.TimKiem(bienSo);
+            if (car && (car->getTrangThai() == "Đang thuê" || car->getTrangThai() == "Dang thue")) {
+                throw std::runtime_error("Không thể xóa xe đang trong trạng thái: Đang thuê!");
+            }
             qlCars.Xoa(bienSo);
             FileManager::Save(filepath, qlCars);
             res.set_content("{\"success\":true, \"message\":\"Xóa xe thành công\"}", "application/json");
