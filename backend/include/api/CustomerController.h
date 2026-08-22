@@ -17,6 +17,8 @@ inline void RegisterCustomerRoutes(httplib::Server& svr, QuanLy<Customer>& qlCus
             std::string hoTen = JsonSerializer::GetJsonValue(req.body, "hoTen");
             std::string sdt = JsonSerializer::GetJsonValue(req.body, "sdt");
             std::string namSinhStr = JsonSerializer::GetJsonValue(req.body, "namSinh");
+            std::string isEditStr = JsonSerializer::GetJsonValue(req.body, "isEdit");
+            bool isEdit = (isEditStr == "true");
 
             if (maKH.empty() || hoTen.empty() || sdt.empty() || namSinhStr.empty()) {
                 res.status = 400;
@@ -37,11 +39,21 @@ inline void RegisterCustomerRoutes(httplib::Server& svr, QuanLy<Customer>& qlCus
 
             Customer* existing = qlCustomers.TimKiem(maKH);
             if (existing) {
+                if (!isEdit) {
+                    res.status = 400;
+                    res.set_content("{\"success\":false, \"message\":\"Mã khách hàng (CCCD) đã tồn tại trong hệ thống!\"}", "application/json");
+                    return;
+                }
                 // Update
                 existing->CapNhatThongTin(hoTen, sdt, namSinh);
                 FileManager::Save(filepath, qlCustomers);
                 res.set_content("{\"success\":true, \"message\":\"Cập nhật thông tin khách hàng thành công\"}", "application/json");
             } else {
+                if (isEdit) {
+                    res.status = 400;
+                    res.set_content("{\"success\":false, \"message\":\"Không tìm thấy khách hàng cần cập nhật\"}", "application/json");
+                    return;
+                }
                 // Create
                 Customer newCust(maKH, hoTen, sdt, namSinh);
                 qlCustomers.Them(newCust);

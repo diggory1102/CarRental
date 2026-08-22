@@ -5,8 +5,9 @@
 #include "../templates/QuanLy.hpp"
 #include "../utils/JsonSerializer.h"
 #include "../utils/FileManager.h"
+#include "../models/Contract.h"
 
-inline void RegisterCarRoutes(httplib::Server& svr, QuanLy<Car>& qlCars, const std::string& filepath) {
+inline void RegisterCarRoutes(httplib::Server& svr, QuanLy<Car>& qlCars, QuanLy<Contract>& qlContracts, const std::string& filepath) {
     svr.Get("/api/cars", [&](const httplib::Request&, httplib::Response& res) {
         res.set_content(JsonSerializer::SerializeList(qlCars.getDanhSach()), "application/json");
     });
@@ -42,6 +43,14 @@ inline void RegisterCarRoutes(httplib::Server& svr, QuanLy<Car>& qlCars, const s
     svr.Post("/api/cars/delete", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             std::string bienSo = JsonSerializer::GetJsonValue(req.body, "bienSo");
+            
+            // Check if there are active contracts for this car (where return date is empty)
+            for (const auto& c : qlContracts.getDanhSach()) {
+                if (c.getBienSo() == bienSo && c.getNgayTraThucTe().empty()) {
+                    throw std::runtime_error("Không thể xóa xe vì đang có hợp đồng thuê hoạt động!");
+                }
+            }
+
             Car* car = qlCars.TimKiem(bienSo);
             if (car && (car->getTrangThai() == "Đang thuê" || car->getTrangThai() == "Dang thue")) {
                 throw std::runtime_error("Không thể xóa xe đang trong trạng thái: Đang thuê!");

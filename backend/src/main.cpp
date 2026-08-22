@@ -21,7 +21,7 @@ void clearInputBuffer() {
 }
 
 // Sub-menu for Car Management
-void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
+void MenuQuanLyOto(QuanLy<Car>& qlCars, QuanLy<Contract>& qlContracts, const std::string& carPath) {
     int choice;
     do {
         std::cout << "\n==========================================" << std::endl;
@@ -81,8 +81,15 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, const std::string& carPath) {
                 if (bienSo.empty()) throw InvalidIdException("Bien so xe khong duoc de trong!");
 
                 Car* car = qlCars.TimKiem(bienSo);
-                if (car && car->getTrangThai() == "Dang thue") {
-                    throw std::runtime_error("Khong the xoa xe dang trong hop dong thue!");
+                if (car) {
+                    for (const auto& c : qlContracts.getDanhSach()) {
+                        if (c.getBienSo() == bienSo && c.getNgayTraThucTe().empty()) {
+                            throw std::runtime_error("Khong the xoa xe vi dang co hop dong thue hoat dong!");
+                        }
+                    }
+                    if (car->getTrangThai() == "Dang thue" || car->getTrangThai() == u8"Đang thuê") {
+                        throw std::runtime_error("Khong the xoa xe dang trong hop dong thue!");
+                    }
                 }
 
                 qlCars.Xoa(bienSo);
@@ -529,7 +536,7 @@ int main() {
 
     // Register controllers
     RegisterAuthRoutes(svr, qlAccounts, accountPath);
-    RegisterCarRoutes(svr, qlCars, carPath);
+    RegisterCarRoutes(svr, qlCars, qlContracts, carPath);
     RegisterCustomerRoutes(svr, qlCustomers, customerPath);
     RegisterContractRoutes(svr, qlContracts, qlCars, qlCustomers, contractPath, carPath);
 
@@ -593,7 +600,7 @@ int main() {
         }
 
         if (mainChoice == 1) {
-            MenuQuanLyOto(qlCars, carPath);
+            MenuQuanLyOto(qlCars, qlContracts, carPath);
         } else if (mainChoice == 2) {
             MenuQuanLyKhachHang(qlCustomers, customerPath);
         } else if (mainChoice == 3) {

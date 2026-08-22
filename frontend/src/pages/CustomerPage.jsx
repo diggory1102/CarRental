@@ -77,7 +77,7 @@ export default function CustomerPage() {
     }
 
     try {
-      await customerApi.createOrUpdate(form);
+      await customerApi.createOrUpdate({ ...form, isEdit });
       setSuccessMsg(isEdit ? "Cập nhật khách hàng thành công!" : "Thêm khách hàng thành công!");
       setShowModal(false);
       fetchCustomers();
