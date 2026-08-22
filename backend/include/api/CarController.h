@@ -29,6 +29,27 @@ inline void RegisterCarRoutes(httplib::Server& svr, QuanLy<Car>& qlCars, QuanLy<
             double giaThue = std::stod(giaThueStr);
             if (trangThai.empty()) trangThai = "Sẵn sàng";
 
+            Car* existing = qlCars.TimKiem(bienSo);
+            if (existing) {
+                std::string statusClean = existing->getTrangThai();
+                if (!statusClean.empty() && statusClean.back() == '\r') statusClean.pop_back();
+                if (!statusClean.empty() && statusClean.back() == '\n') statusClean.pop_back();
+
+                if (statusClean == "Đã xóa" || statusClean == "Da xoa") {
+                    existing->setTenXe(tenXe);
+                    existing->setLoaiXe(loaiXe);
+                    existing->CapNhatGia(giaThue);
+                    existing->setTrangThai(trangThai);
+                    FileManager::Save(filepath, qlCars);
+                    res.set_content("{\"success\":true, \"message\":\"Kích hoạt lại xe đã xóa thành công!\"}", "application/json");
+                    return;
+                } else {
+                    res.status = 400;
+                    res.set_content("{\"success\":false, \"message\":\"Biển số xe đã tồn tại và đang hoạt động!\"}", "application/json");
+                    return;
+                }
+            }
+
             Car newCar(bienSo, tenXe, loaiXe, giaThue, trangThai);
             qlCars.Them(newCar);
             FileManager::Save(filepath, qlCars);

@@ -69,10 +69,28 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, QuanLy<Contract>& qlContracts, const std
                 if (ttChoice == 2) {
                     trangThai = u8"Bảo trì";
                 }
-                Car newCar(bienSo, tenXe, loaiXe, giaThue, trangThai);
-                qlCars.Them(newCar);
-                FileManager::Save(carPath, qlCars);
-                std::cout << "Them xe moi thanh cong!" << std::endl;
+                Car* existing = qlCars.TimKiem(bienSo);
+                if (existing) {
+                    std::string statusClean = existing->getTrangThai();
+                    if (!statusClean.empty() && statusClean.back() == '\r') statusClean.pop_back();
+                    if (!statusClean.empty() && statusClean.back() == '\n') statusClean.pop_back();
+
+                    if (statusClean == "Da xoa" || statusClean == u8"Đã xóa") {
+                        existing->setTenXe(tenXe);
+                        existing->setLoaiXe(loaiXe);
+                        existing->CapNhatGia(giaThue);
+                        existing->setTrangThai(trangThai);
+                        FileManager::Save(carPath, qlCars);
+                        std::cout << "Kich hoat lai xe da xoa va cap nhat thong tin thanh cong!" << std::endl;
+                    } else {
+                        throw std::invalid_argument("Bien so xe da ton tai va dang hoat dong!");
+                    }
+                } else {
+                    Car newCar(bienSo, tenXe, loaiXe, giaThue, trangThai);
+                    qlCars.Them(newCar);
+                    FileManager::Save(carPath, qlCars);
+                    std::cout << "Them xe moi thanh cong!" << std::endl;
+                }
 
             } else if (choice == 2) {
                 std::string bienSo;
