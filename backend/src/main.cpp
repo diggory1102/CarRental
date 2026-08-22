@@ -142,7 +142,16 @@ void MenuQuanLyOto(QuanLy<Car>& qlCars, QuanLy<Contract>& qlContracts, const std
 
             } else if (choice == 6) {
                 std::cout << "\n--- Danh sach tat ca xe ---" << std::endl;
-                qlCars.HienThiDanhSach();
+                int activeCount = 0;
+                for (const auto& car : qlCars.getDanhSach()) {
+                    if (car.getTrangThai() != "Da xoa" && car.getTrangThai() != u8"Đã xóa") {
+                        car.XuatThongTin();
+                        activeCount++;
+                    }
+                }
+                if (activeCount == 0) {
+                    std::cout << "Khong co xe nao trong danh sach." << std::endl;
+                }
             } else if (choice == 7) {
                 std::string bienSo, trangThaiMoi;
                 std::cout << "Nhap bien so xe can cap nhat trang thai: ";

@@ -145,6 +145,7 @@ export default function CarManagementPage() {
       loaiXeClean.includes(queryClean);
 
     const carStatusClean = car.trangThai.replace(/[\r\n]/g, "");
+    if (carStatusClean === "Đã xóa" || carStatusClean === "Da xoa") return false;
     const matchesStatus = statusFilter === "All" || carStatusClean === statusFilter;
 
     return matchesSearch && matchesStatus;

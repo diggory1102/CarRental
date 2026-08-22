@@ -55,7 +55,9 @@ inline void RegisterCarRoutes(httplib::Server& svr, QuanLy<Car>& qlCars, QuanLy<
             if (car && (car->getTrangThai() == "Đang thuê" || car->getTrangThai() == "Dang thue")) {
                 throw std::runtime_error("Không thể xóa xe đang trong trạng thái: Đang thuê!");
             }
-            qlCars.Xoa(bienSo);
+            if (car) {
+                car->setTrangThai("Đã xóa");
+            }
             FileManager::Save(filepath, qlCars);
             res.set_content("{\"success\":true, \"message\":\"Xóa xe thành công\"}", "application/json");
         } catch (const std::exception& e) {
