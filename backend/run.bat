@@ -9,4 +9,5 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo Compilation SUCCESSFUL. Running C++ backend server...
+chcp 65001 > nul
 server.exe

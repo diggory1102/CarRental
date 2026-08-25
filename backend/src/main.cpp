@@ -14,6 +14,10 @@
 #include "../include/exceptions/CarNotAvailableException.h"
 #include "../include/exceptions/InvalidIdException.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 // Clear input buffer
 void clearInputBuffer() {
     std::cin.clear();
@@ -502,6 +506,10 @@ int getLockDurationSec(int failCount) {
 }
 
 int main() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     std::srand(std::time(nullptr));
     // File paths
     const std::string carPath = "backend/data/cars.txt";
