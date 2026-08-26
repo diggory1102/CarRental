@@ -1,6 +1,6 @@
 30F-99999|Mercedes C200|Sedan|1.2e+06|Sẵn sàng
 51H-88888|Hyundai SantaFe|SUV|900000|Sẵn sàng
-ádasd|ádas|đâs|2.33213e+07|Sẵn sàng
-adaad|dadad|dada|5e+06|Sẵn sàng
-232332|aeqw|4 cho|500000|Đã xóa
+23G-54144|Toyota Vios|Sedan|2.33213e+07|Sẵn sàng
+32F-21312|Toyota Wigo|Sedan|5e+06|Sẵn sàng
+54A-33441|Kia Morning|Sedan|500000|Đã xóa
 29e-12345|BMW|BMW M5|1e+06|Sẵn sàng

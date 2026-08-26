@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, Edit, AlertCircle, Search } from "lucide-react";
+import { Plus, Trash2, Edit, AlertCircle, Search, History } from "lucide-react";
 import { customerApi } from "../api/customerApi";
+import { contractApi } from "../api/contractApi";
 
 export default function CustomerPage() {
   const [customers, setCustomers] = useState([]);
@@ -17,6 +18,29 @@ export default function CustomerPage() {
 
   // Modal level error
   const [modalError, setModalError] = useState("");
+
+  // History Modal states
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [historyContracts, setHistoryContracts] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+
+  const handleOpenHistory = async (cust) => {
+    setSelectedCustomer(cust);
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    setHistoryError("");
+    setHistoryContracts([]);
+    try {
+      const data = await contractApi.getHistory(cust.maKH);
+      setHistoryContracts(data);
+    } catch (err) {
+      setHistoryError("Không thể tải lịch sử thuê xe: " + err.message);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -197,6 +221,14 @@ export default function CustomerPage() {
                         <div style={{ display: "inline-flex", gap: "0.5rem" }}>
                           <button
                             className="btn btn-secondary"
+                            style={{ padding: "0.4rem 0.6rem", color: "var(--secondary)" }}
+                            onClick={() => handleOpenHistory(cust)}
+                            title="Lịch sử giao dịch"
+                          >
+                            <History size={14} />
+                          </button>
+                          <button
+                            className="btn btn-secondary"
                             style={{ padding: "0.4rem 0.6rem" }}
                             onClick={() => handleOpenEdit(cust)}
                             title="Sửa thông tin"
@@ -289,6 +321,96 @@ export default function CustomerPage() {
                 <button type="submit" className="btn btn-primary">Lưu</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {showHistoryModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ maxWidth: "700px", width: "95%" }}>
+            <div className="modal-header">
+              <h2>Lịch sử thuê xe</h2>
+              <button className="modal-close" onClick={() => setShowHistoryModal(false)}>×</button>
+            </div>
+
+            {selectedCustomer && (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <p><strong>Khách hàng:</strong> {selectedCustomer.hoTen}</p>
+                <p><strong>CCCD:</strong> {selectedCustomer.maKH} | <strong>SĐT:</strong> {selectedCustomer.sdt}</p>
+              </div>
+            )}
+
+            {loadingHistory ? (
+              <p>Đang tải lịch sử giao dịch...</p>
+            ) : historyError ? (
+              <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "0.75rem 1rem", borderRadius: "8px", display: "flex", gap: "0.5rem" }}>
+                <AlertCircle size={18} />
+                <span>{historyError}</span>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+                  <div className="glass-panel" style={{ padding: "1rem", textAlign: "center", background: "rgba(255, 255, 255, 0.02)" }}>
+                    <div style={{ fontSize: "0.875rem", color: "#94a3b8" }}>Tổng số lần thuê</div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 750, color: "white", marginTop: "0.25rem" }}>
+                      {historyContracts.length}
+                    </div>
+                  </div>
+                  <div className="glass-panel" style={{ padding: "1rem", textAlign: "center", background: "rgba(255, 255, 255, 0.02)" }}>
+                    <div style={{ fontSize: "0.875rem", color: "#94a3b8" }}>Tổng tiền đã chi</div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 750, color: "var(--secondary)", marginTop: "0.25rem" }}>
+                      {historyContracts.reduce((sum, c) => sum + (c.soTienThanhToan || 0), 0).toLocaleString("vi-VN")} VND
+                    </div>
+                  </div>
+                </div>
+
+                <div className="table-container" style={{ maxHeight: "300px", overflowY: "auto" }}>
+                  <table className="custom-table">
+                    <thead>
+                      <tr>
+                        <th>Mã HĐ</th>
+                        <th>Biển số</th>
+                        <th>Ngày thuê</th>
+                        <th>Ngày trả</th>
+                        <th style={{ textAlign: "right" }}>Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historyContracts.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: "center", color: "#64748b", padding: "1.5rem" }}>
+                            Chưa có giao dịch thuê xe nào.
+                          </td>
+                        </tr>
+                      ) : (
+                        historyContracts.map((c) => (
+                          <tr key={c.maHD}>
+                            <td>{c.maHD}</td>
+                            <td style={{ fontWeight: 650 }}>{c.bienSo}</td>
+                            <td>{c.ngayThue}</td>
+                            <td>
+                              {c.ngayTraThucTe ? (
+                                c.ngayTraThucTe
+                              ) : (
+                                <span style={{ color: "var(--warning)", fontSize: "0.875rem" }}>Đang thuê</span>
+                              )}
+                            </td>
+                            <td style={{ textAlign: "right", color: c.soTienThanhToan ? "white" : "#64748b" }}>
+                              {c.soTienThanhToan ? `${c.soTienThanhToan.toLocaleString("vi-VN")} VND` : "-"}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="modal-footer" style={{ marginTop: "1.5rem" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowHistoryModal(false)}>Đóng</button>
+            </div>
           </div>
         </div>
       )}
